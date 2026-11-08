@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>2023年1—10月火灾原因构成 · 悬停交互图</title>
+<style>
+  :root { color-scheme: normal; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; width:100%; height:100%; background:transparent !important; }
+  body { display:flex; justify-content:center; align-items:flex-start; overflow:hidden; }
+  .canvas { width:min(100%, 1100px); aspect-ratio:1200 / 1200; background:transparent !important; }
+  svg { display:block; width:100%; height:100%; overflow:visible; background:transparent !important; font-family:"Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC", Arial, sans-serif; }
+  .rule { stroke:#D8E3E2; opacity:.18; stroke-width:1.4; }
+  .ridge { transition: filter .5s ease, opacity .5s ease; opacity:.77; }
+  .ridge-outline { fill:none; stroke-width:2.1; stroke-linecap:round; opacity:.85; transition:opacity .4s, stroke-width .4s; }
+  .icon-hit { cursor:pointer; outline: none; }
+  .icon-circle { fill:#243640; fill-opacity:.22; stroke:#E9E2D9; stroke-opacity:.18; stroke-width:1.6; transition:fill-opacity .35s,stroke-opacity .35s,transform .35s; transform-box:fill-box; transform-origin:center; }
+  .icon-shape { stroke:#D4BFA8; stroke-width:4; stroke-linecap:round; stroke-linejoin:round; fill:none; transition:stroke .35s,filter .35s,transform .35s; transform-box:fill-box;transform-origin:center; }
+  .label, .number { transition:fill .42s,filter .42s,opacity .42s; }
+  .label { fill:#DFE6E5; font-size:31px; letter-spacing:1px; font-weight:500; }
+  .number { fill:#253A44; font-family:Georgia, "Noto Serif",serif; font-size:38px; font-weight:bold; }
+  .pill { stroke-width:1.5; stroke-opacity:.36; fill-opacity:.88; transition:fill-opacity .35s,stroke-opacity .35s,filter .35s; }
+  .leader { stroke:#C7D3D1; stroke-width:1.8; opacity:.42; transition:opacity .35s,stroke-width .35s; }
+  .item.active .ridge { opacity:1; filter:brightness(1.36) drop-shadow(0px 0px 5px var(--glow)); }
+  .item.active .ridge-outline { opacity:1; stroke-width:2.8; }
+  .item.active .icon-circle { fill-opacity:.35; stroke-opacity:.9; transform:scale(1.14); }
+  .item.active .icon-shape { stroke:#FFF1D6; filter:drop-shadow(0px 0px 4px #FFE2B4); transform:scale(1.09); }
+  .item.active .label { fill:#FFF9EB; filter:drop-shadow(0px 0px 3px #D2E9E6); animation:label-bounce .55s cubic-bezier(.16,1,.3,1); }
+  .item.active .number { fill:#0F2A36; animation:num-pop .65s cubic-bezier(.2,1.45,.38,1); }
+  .item.active .pill { fill-opacity:1; stroke-opacity:.95; filter:drop-shadow(0 0 6px var(--glow)); }
+  .item.active .leader { opacity:.88; stroke-width:2.3; }
+  @keyframes label-bounce {0% {transform:translateY(0)} 35%{transform:translateY(-8px)} 72%{transform:translateY(2px)} 100%{transform:translateY(0)} }
+  @keyframes num-pop {0%{transform:translateY(1px) scale(.94);opacity:.5} 45%{transform:translateY(-5px) scale(1.085);opacity:1} 100%{transform:translateY(0) scale(1);opacity:1}}
+  @media(prefers-reduced-motion:reduce){ *, *::before,*::after {animation-duration:.01ms !important;transition-duration:.01ms !important} }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" role="img" aria-label="2023年1至10月火灾原因占比图，触摸图标可突出对应原因和占比">
+    <defs id="defs"></defs>
+    <g id="main"></g>
+  </svg>
+</div>
+<script>
+(()=>{
+  'use strict';
+  const NS='http://www.w3.org/2000/svg';
+  const data=[
+    {name:'电气原因',pct:29.1,color:'#80B7AE',icon:'zap'},
+    {name:'用火不慎',pct:22.1,color:'#D5A17E',icon:'flame'},
+    {name:'遗留火种',pct:20.1,color:'#8CB3C9',icon:'ember'},
+    {name:'吸烟',pct:12.2,color:'#B8A3BA',icon:'smoke'},
+    {name:'自燃',pct:5.9,color:'#ACBAA3',icon:'auto'},
+    {name:'燃放烟花爆竹',pct:3.4,color:'#D8C095',icon:'fireworks'},
+    {name:'生产作业不慎',pct:2.1,color:'#9DAFB9',icon:'gear'},
+    {name:'玩火等其他原因',pct:5.1,color:'#D6AAAA',icon:'dots'}
+  ];
+  const main=document.querySelector('#main'),defs=document.querySelector('#defs');
+  function el(type,attrs={},parent=null,text=null){
+    const n=document.createElementNS(NS,type);
+    for (const [key,value] of Object.entries(attrs)) n.setAttribute(key,String(value));
+    if(text!==null) n.textContent=text;
+    (parent||main).appendChild(n);return n;
+  }
+  const icons={
+    zap:'M 2 -22 L -13 0 H -1 L -7 22 L 15 -5 H 2 Z',
+    flame:'M 1 -23 C 1 -13 -12 -6 -11 7 C -10 20 8 23 12 9 C 14 1 9 -4 8 -9 C 6 -3 2 -1 1 3 C -1 -4 2 -14 1 -23 Z',
+    ember:'M -16 15 H 16 M -12 11 L 12 19 M 12 11 L -12 19 M 0 6 C -12 -5 2 -12 0 -22 C 11 -11 5 -4 8 0 C 6 8 -1 10 0 6 Z',
+    smoke:'M -22 12 H 7 V 21 H -22 Z M 11 12 H 20 V 21 H 11 Z M 0 7 C -5 -2 5 -6 -1 -15 M 11 7 C 5 -3 18 -9 12 -21',
+    auto:'M 0 -23 A 22 22 0 1 1 -11 -19 M -4 -16 C -3 -5 -13 -2 -9 9 C -6 18 7 17 9 8 C 10 3 5 -1 4 -5 C 4 1 1 0 -2 4 C -4 -4 -3 -9 -4 -16 Z',
+    fireworks:'M 0 -22 V -10 M 0 10 V 22 M -22 0 H -10 M 10 0 H 22 M -16 -16 L -8 -8 M 8 8 L 16 16 M 16 -16 L 8 -8 M -8 8 L -16 16 M 0 0 L 1 1',
+    gear:'M -7 -20 L 7 -20 L 9 -13 L 15 -10 L 21 -13 L 26 -3 L 19 2 L 19 9 L 24 14 L 16 23 L 9 18 L 2 21 L -2 27 L -14 21 L -13 13 L -20 9 L -24 2 L -18 -7 L -14 -8 L -10 -17 Z M 2 -6 A 9 9 0 1 0 2 12 A 9 9 0 1 0 2 -6 Z',
+    dots:'M -20 0 H -19 M 0 0 H 1 M 20 0 H 21'
+  };
+  // 顶部年份说明仅承担数据时间范围标注，图表背景始终透明
+  el('rect',{x:52,y:45,width:332,height:67,rx:18,fill:'#243E47','fill-opacity':'.75',stroke:'#B8C8C6','stroke-opacity':'.28'});
+  el('text',{x:76,y:90,fill:'#F0E9DF','font-size':38,'font-weight':600,'letter-spacing':'1px'},null,'2023年1—10月');
+  el('text',{x:422,y:90,fill:'#E9E4DC','font-size':47,'font-weight':600,'letter-spacing':'3px'},null,'火灾原因构成');
+  el('path',{d:'M 424 112 C 590 106 683 116 850 103',stroke:'#C9A682','stroke-width':2.8,fill:'none','stroke-opacity':.55});
+  function ridgePath(i,base,peak){
+    const segments=90, left=49,right=594,mid=(left+right)/2;
+    const bias=[0,.7,-.6,.3,-.3,.5,-.5,.2][i];
+    let d=`M ${left} ${base}`;
+    for(let j=0;j<=segments;j++){
+      const x=left+(right-left)*j/segments;
+      const t=(x-mid)/(right-left);
+      const gauss=Math.exp(-.5*Math.pow((t-.03+bias*.02)/.106,2));
+      const shoulderL=.37*Math.exp(-.5*Math.pow((t+.19)/.072,2));
+      const shoulderR=.26*Math.exp(-.5*Math.pow((t-.21)/.065,2));
+      const valley=.06*Math.cos((t+1)*25) * Math.exp(-t*t*13);
+      const y=base-peak*Math.max(0,gauss+shoulderL+shoulderR+valley);
+      d+=` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }
+    return d;
+  }
+  const rows=[];
+  data.forEach((d,i)=>{
+    const base=252+i*113;
+    const root=el('g',{'class':'item','data-index':i,style:`--glow:${d.color}`});rows.push(root);
+    const grad=el('linearGradient',{id:`rgrad${i}`,x1:'0',y1:'0',x2:'0',y2:'1'},defs);
+    el('stop',{offset:'0%','stop-color':d.color,'stop-opacity':'.96'},grad);
+    el('stop',{offset:'70%','stop-color':d.color,'stop-opacity':'.42'},grad);
+    el('stop',{offset:'100%','stop-color':d.color,'stop-opacity':'.05'},grad);
+    const peak=24+65*(d.pct/29.1);
+    const top=ridgePath(i,base,peak);
+    el('path',{d:top+' Z',fill:`url(#rgrad${i})`,class:'ridge'},root);
+    el('path',{d:top.replace('M 49 '+base,'M 49 '+base),class:'ridge-outline',stroke:d.color},root);
+    el('line',{x1:50,x2:1158,y1:base,y2:base,class:'rule'},root);
+    // left decoration guide, visually continuous into right-side metric
+    el('line',{x1:932,x2:967,y1:base-44,y2:base-44,class:'leader'},root);
+    const icon=el('g',{'class':'icon-hit',transform:`translate(652,${base-45})`,role:'button',tabindex:0,'aria-label':`突出显示${d.name}，${d.pct}%`},root);
+    el('circle',{cx:0,cy:0,r:34,class:'icon-circle'},icon);
+    if(d.icon==='dots'){
+      for(const x of [-17,0,17]) el('circle',{cx:x,cy:0,r:4,fill:'#D4BFA8',class:'icon-shape'},icon);
+    }else{
+      el('path',{d:icons[d.icon],class:'icon-shape'},icon);
+    }
+    el('rect',{x:-43,y:-44,width:86,height:88,fill:'transparent','pointer-events':'all'},icon);
+    const fontSize=d.name.length>=7?27:31;
+    el('text',{x:714,y:base-34,'font-size':fontSize,class:'label'},root,d.name);
+    const pillX=972, pillY=base-83;
+    el('rect',{x:pillX,y:pillY,width:175,height:76,rx:34,class:'pill',fill:d.color,stroke:d.color},root);
+    el('text',{x:1059,y:base-30,'text-anchor':'middle',class:'number'},root,d.pct.toFixed(1)+'%');
+    icon.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch')activate(i)});
+    icon.addEventListener('pointerleave',e=>{if(e.pointerType!=='touch' && !locked)deactivate()});
+    icon.addEventListener('click',e=>{e.stopPropagation();locked=true;activate(i);clearTimeout(clearId);clearId=setTimeout(()=>{locked=false;deactivate()},2500)});
+    icon.addEventListener('focus',()=>activate(i));
+    icon.addEventListener('blur',()=>{if(!locked)deactivate()});
+    icon.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();icon.dispatchEvent(new MouseEvent('click',{bubbles:true}))}});
+  });
+  let current=-1,locked=false,clearId;
+  function activate(i){
+    rows.forEach((r,n)=>{r.classList.remove('active')});
+    // Reflow allows entering the same icon again to replay its small bounce
+    void rows[i].getBoundingClientRect(); rows[i].classList.add('active');current=i;
+  }
+  function deactivate(){rows.forEach(r=>r.classList.remove('active'));current=-1}
+  // Light source note; decorative ridges are deliberately not shown as measured distributions
+  el('circle',{cx:73,cy:1158,r:16,fill:'none',stroke:'#D9E3E0','stroke-opacity':'.55'});
+  el('text',{x:73,y:1165,'text-anchor':'middle','font-size':20,fill:'#D9E3E0'},null,'i');
+  el('text',{x:102,y:1167,'font-size':21,fill:'#CAD8D5','letter-spacing':'.3px'},null,'统计范围：2023年1—10月 · 曲线为装饰性占比示意，非起火时间分布');
+})();
+</script>
+</body>
+</html>
